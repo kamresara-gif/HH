@@ -1,54 +1,33 @@
+name: Build
 
-name: Tweak Cloud Compiler
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Setup Theos
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
-          sudo apt-get update
-          sudo apt-get install -y clang make git perl debianutils lzma build-essential fakeroot dpkg
-          
-          if [ ! -d "$THEOS" ]; then
-            git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
-          fi
-          
-          if [ ! -d "$THEOS/sdks" ]; then
-            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
-          fi
-          
-          sudo mkdir -p /opt/theos
-          sudo ln -sf $THEOS/makefiles /opt/theos/makefiles
-          sudo ln -sf $THEOS/sdks /opt/theos/sdks
-          sudo ln -sf $THEOS/bin /opt/theos/bin
-          
+          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          export THEOS=$GITHUB_WORKSPACE/theos
-          export PATH=$PATH:$THEOS/bin
-          # الدخول للمجلد الذي يحتوي على Makefile
+          # الدخول للمجلد الذي يحتوي على الكود
           cd SilentPwn-main
-          # تنظيف وبناء
-          make clean || true
+          # البناء بدون تنظيف لتجنب أخطاء clean
           make package
-          echo "Build finished"
+          # نسخ الملف الناتج لمجلد packages
+          mkdir -p ../packages
+          cp packages/*.deb ../packages/
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: tweak-package
-          path: SilentPwn-main/packages/*.deb
-          if-no-files-found: error
+          name: package
+          path: packages/*.deb
