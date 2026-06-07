@@ -6,29 +6,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Environment
         run: |
-          export THEOS=/opt/theos
-          sudo mkdir -p /opt/theos
+          # نستخدم مجلد العمل الحالي وليس مسار النظام
+          export THEOS=$GITHUB_WORKSPACE/theos
           git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
-          echo "THEOS=/opt/theos" >> $GITHUB_ENV
-          echo "/opt/theos/bin" >> $GITHUB_PATH
+          
+          # ضبط متغيرات البيئة
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          export THEOS=/opt/theos
-          export PATH=$PATH:/opt/theos/bin
-          # البحث عن ملف Makefile والبناء في مكانه
-          find . -name "Makefile" -execdir make package \;
-          # جمع المخرجات في مجلد ثابت
-          mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          export THEOS=$GITHUB_WORKSPACE/theos
+          export PATH=$PATH:$THEOS/bin
+          
+          # البناء المباشر
+          # تأكد أن ملف Makefile موجود في المجلد الرئيسي للمشروع
+          make package
+          
+          # جمع ملف الـ .deb الناتج في مجلد ثابت
+          mkdir -p final_packages
+          cp packages/*.deb final_packages/  cp .theos/obj/*.deb final_packages/  true
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
-          path: final_output/
+          path: final_packages/*.deb
+          if-no-files-found: error
