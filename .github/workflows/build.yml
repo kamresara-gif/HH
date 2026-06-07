@@ -11,31 +11,31 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # نستخدم مجلد العمل الحالي وليس مسار النظام
-          export THEOS=$GITHUB_WORKSPACE/theos
+          # مسح أي بقايا سابقة لضمان بيئة نظيفة
+          rm -rf $HOME/theos
+          
+          export THEOS=$HOME/theos
           git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           
-          # ضبط متغيرات البيئة
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          export THEOS=$GITHUB_WORKSPACE/theos
+          export THEOS=$HOME/theos
           export PATH=$PATH:$THEOS/bin
           
           # البناء المباشر
-          # تأكد أن ملف Makefile موجود في المجلد الرئيسي للمشروع
           make package
           
-          # جمع ملف الـ .deb الناتج في مجلد ثابت
-          mkdir -p final_packages
-          cp packages/*.deb final_packages/  cp .theos/obj/*.deb final_packages/  true
+          # إنشاء مجلد للمخرجات
+          mkdir -p final_output
+          find . -name "*.deb" -exec cp {} final_output/ \;
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
-          path: final_packages/*.deb
+          path: final_output/
           if-no-files-found: error
