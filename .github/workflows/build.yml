@@ -1,3 +1,4 @@
+
 name: Tweak Cloud Compiler
 
 on:
@@ -38,7 +39,10 @@ jobs:
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
-          make
+          # الدخول للمجلد الذي يحتوي على Makefile
+          cd SilentPwn-main
+          # تنظيف وبناء
+          make clean || true
           make package
           echo "Build finished"
 
@@ -46,5 +50,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
-          path: packages/
+          path: SilentPwn-main/packages/*.deb
           if-no-files-found: error
