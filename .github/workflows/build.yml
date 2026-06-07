@@ -6,17 +6,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Environment
         run: |
-          # مسح أي بقايا سابقة لضمان بيئة نظيفة
-          rm -rf $HOME/theos
-          
+          # نستخدم مسار خاص داخل المجلد الحالي للمستخدم لضمان الصلاحيات
           export THEOS=$HOME/theos
-          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
-          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          
+          # التحقق من وجود المجلد قبل تحميله لتجنب خطأ 128
+          if [ ! -d "$THEOS" ]; then
+            git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          fi
+          
+          if [ ! -d "$THEOS/sdks" ]; then
+            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          fi
           
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
@@ -29,7 +33,7 @@ jobs:
           # البناء المباشر
           make package
           
-          # إنشاء مجلد للمخرجات
+          # جمع ملفات الـ deb الناتجة (في أي مسار كانت)
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
