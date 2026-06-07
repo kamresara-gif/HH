@@ -11,7 +11,5 @@ SilentPwn_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable 
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-
-after-all::
- mkdir -p packages
- cp -a $(THEOS_OBJ_DIR)/$(TWEAK_NAME).deb packages/
+package::
+ @echo "Packaging..."
