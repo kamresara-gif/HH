@@ -10,8 +10,3 @@ SilentPwn_FRAMEWORKS = UIKit Foundation QuartzCore
 SilentPwn_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-value
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-# هذا السطر يضمن أن ملف .deb سيتم إنشاؤه في مجلد packages بشكل صحيح
-after-package::
- mkdir -p packages
- cp -a $(THEOS_OBJ_DIR)/$(TWEAK_NAME).deb packages/
