@@ -38,7 +38,7 @@ jobs:
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
-          make clean
+          make
           make package
           echo "Build finished"
 
