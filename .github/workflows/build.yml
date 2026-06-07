@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Theos
+      - name: Setup
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos
           git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
@@ -18,16 +18,16 @@ jobs:
 
       - name: Compile
         run: |
-          # الدخول للمجلد الذي يحتوي على الكود
-          cd SilentPwn-main
-          # البناء بدون تنظيف لتجنب أخطاء clean
+          if [ -d "SilentPwn-main" ]; then
+            cd SilentPwn-main
+          fi
           make package
-          # نسخ الملف الناتج لمجلد packages
           mkdir -p ../packages
-          cp packages/*.deb ../packages/
+          find . -name "*.deb" -exec cp {} ../packages/ \;
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: tweak-package
           path: packages/*.deb
+          if-no-files-found: error
