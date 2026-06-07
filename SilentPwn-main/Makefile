@@ -5,12 +5,8 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = SilentPwn
 
-SilentPwn_FILES = Tweak.mm $(wildcard Source/UI/*.mm)
+SilentPwn_FILES = Tweak.mm
 SilentPwn_FRAMEWORKS = UIKit Foundation QuartzCore
-SilentPwn_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-value
+SilentPwn_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-
-after-package::
- mkdir -p packages
- find . -name "*.deb" -exec cp {} packages/ \;
