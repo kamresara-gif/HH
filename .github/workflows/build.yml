@@ -1,0 +1,58 @@
+name: Tweak Cloud Compiler
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        run: |
+          export THEOS=$GITHUB_WORKSPACE/theos
+          sudo apt-get update
+          sudo apt-get install -y clang make git perl debianutils lzma build-essential fakeroot dpkg
+          
+          if [ ! -d "$THEOS" ]; then
+            git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          fi
+          
+          if [ ! -d "$THEOS/sdks" ]; then
+            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          fi
+          
+          # Fix for "No such file or directory" and SDK errors
+          sudo mkdir -p /opt/theos
+          sudo ln -s $THEOS/makefiles /opt/theos/makefiles
+          sudo ln -s $THEOS/sdks /opt/theos/sdks
+          sudo ln -s $THEOS/bin /opt/theos/bin
+          
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "$THEOS/bin" >> $GITHUB_PATH
+
+      - name: Compile
+        run: |
+          export THEOS=$GITHUB_WORKSPACE/theos
+          export PATH=$PATH:$THEOS/bin
+          
+          # Run make with forced variables to override Makefile paths if needed
+          if [ -f "Makefile" ]; then
+            make
+          fi
+          
+          mkdir -p packages
+          # Use cp instead of mv to avoid errors if file doesn't exist
+          find . -maxdepth 3 -name "*.deb" -exec cp {} packages/ \;
+          echo "Build finished"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: tweak-package
+          path: packages/
+          if-no-files-found: warn
