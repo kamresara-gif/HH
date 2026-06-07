@@ -10,26 +10,31 @@ jobs:
 
       - name: Setup Environment
         run: |
-          export THEOS=/opt/theos
-          sudo mkdir -p /opt/theos
+          # نحدد مسار ثابت وموحد للـ Theos
+          export THEOS=$HOME/theos
           git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
-          echo "THEOS=/opt/theos" >> $GITHUB_ENV
-          echo "/opt/theos/bin" >> $GITHUB_PATH
+          
+          # نضيف المسارات للبيئة
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          export THEOS=/opt/theos
-          export PATH=$PATH:/opt/theos/bin
-          # البحث عن ملف Makefile والبناء في مكانه
-          find . -name "Makefile" -execdir make package \;
-          # جمع المخرجات في مجلد ثابت
-          mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          # نستخدم المسار الموحد
+          export THEOS=$HOME/theos
+          export PATH=$PATH:$THEOS/bin
+          
+          # البناء المباشر
+          make package
+          
+          # نقل المخرجات إلى مجلد ثابت
+          mkdir -p packages
+          find . -name "*.deb" -exec cp {} packages/ \;
 
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
-          path: final_output/
+          path: packages/
           if-no-files-found: error
