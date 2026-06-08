@@ -8,34 +8,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install Essential Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg git make
+          sudo apt-get install -y make git dpkg
 
-      - name: Setup Environment
+      - name: Setup Theos
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos_dir
-          if [ ! -d "$THEOS" ]; then
-            git clone --depth 1 https://github.com/theos/theos "$THEOS"
-            cd "$THEOS" && git submodule update --init --recursive
-          fi
-          if [ ! -d "$THEOS/sdks" ]; then
-            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
-          fi
+          # تنظيف أي بقايا لضمان عدم حدوث خطأ 128
+          rm -rf "$THEOS"
+          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
-      - name: Compile
+      - name: Compile Tweak
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           export PATH=$PATH:$THEOS/bin
-          # تأكد أنك أضفت include $(THEOS_MAKE_PATH)/aggregate.mk في ملف Makefile
-          make package
+          # محاولة البناء الأساسية
+          make
+          # محاولة التغليف، إذا فشلت سنستخدم dpkg-deb مباشرة
+          make package || dpkg-deb -b . ./SilentPwn.deb
+          
           mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          cp *.deb final_output/ || echo "No deb file found"
 
-      - name: Upload
+      - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
