@@ -8,31 +8,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare Environment
+      - name: Build Tweak
         run: |
-          # 1. التنظيف الجبري: حذف أي مجلدات قديمة تسبب تعارضات
-          rm -rf theos sdks
+          # 1. إعداد مسار ثابت خارج مجلد العمل الخاص بـ GitHub
+          export THEOS=/tmp/theos
           
-          # 2. تحميل Theos و SDKs بشكل مباشر (بدون --recursive لتجنب تعارض الـ submodules)
-          git clone --depth 1 https://github.com/theos/theos.git theos
-          git clone --depth 1 https://github.com/theos/sdks.git theos/sdks
+          # 2. تحميل Theos فقط إذا لم يكن موجوداً، واستخدم --depth 1 لتقليل التعقيد
+          if [ ! -d "$THEOS" ]; then
+            git clone --depth 1 https://github.com/theos/theos.git "$THEOS"
+          fi
           
-          # 3. تثبيت الأدوات الأساسية (ldid و dpkg)
-          sudo apt-get update && sudo apt-get install -y dpkg ldid
-
-      - name: Compile
-        run: |
-          # ضبط متغيرات البيئة بدقة
-          export THEOS=$GITHUB_WORKSPACE/theos
+          # 3. إعداد SDKs في مكان منفصل
+          export THEOS_SDK_DIR=/tmp/sdks
+          if [ ! -d "$THEOS_SDK_DIR" ]; then
+            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS_SDK_DIR"
+          fi
+          
+          # 4. ربط الـ SDKs بالـ Theos (بدلاً من الاستنساخ داخل المجلد)
+          ln -s "$THEOS_SDK_DIR" "$THEOS/sdks"
+          
+          # 5. تثبيت الحزم المطلوبة
+          sudo apt-get update && sudo apt-get install -y dpkg ldid make
+          
+          # 6. البناء
           export PATH=$PATH:$THEOS/bin
-          
-          # التأكد من التواجد في المجلد الصحيح وبناء الحزمة
-          # إذا كان الـ Makefile في المجلد الرئيسي، فلا حاجة للـ cd
           make package
           
-          # تجميع المخرجات في مجلد ثابت
+          # 7. التجميع
           mkdir -p final_output
-          cp *.deb final_output/ || echo "No .deb file found"
+          find . -name "*.deb" -exec cp {} final_output/ \;
 
       - name: Upload
         uses: actions/upload-artifact@v4
