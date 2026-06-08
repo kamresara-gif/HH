@@ -1,4 +1,5 @@
 name: Tweak Cloud Compiler
+
 on: [push, workflow_dispatch]
 
 jobs:
@@ -7,31 +8,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Prepare Environment
+      - name: Build Tweak
         run: |
-          # تنظيف أي مجلدات قديمة تسبب الخطأ 128
+          # 1. تنظيف شامل لمجلد العمل
           rm -rf theos sdks
-          # تحميل Theos مباشرة إلى مجلد المشروع
-          git clone --depth 1 https://github.com/theos/theos.git theos
-          git clone --depth 1 https://github.com/theos/sdks.git theos/sdks
           
-          # تثبيت الأدوات الضرورية
-          sudo apt-get update && sudo apt-get install -y dpkg
-
-      - name: Compile
-        run: |
-          # تصدير المسارات لتشير إلى المجلدات داخل المشروع الحالي
+          # 2. تحميل Theos مباشرة كأرشيف (لا يحتاج git)
+          echo "Downloading Theos..."
+          curl -LO https://github.com/theos/theos/archive/master.tar.gz
+          mkdir -p theos
+          tar -xzf master.tar.gz -C theos --strip-components=1
+          
+          # 3. تحميل SDKs مباشرة كأرشيف
+          echo "Downloading SDKs..."
+          curl -LO https://github.com/theos/sdks/archive/master.tar.gz
+          mkdir -p theos/sdks
+          tar -xzf master.tar.gz -C theos/sdks --strip-components=1
+          
+          # 4. تثبيت الأدوات الضرورية
+          sudo apt-get update && sudo apt-get install -y make dpkg
+          
+          # 5. إعداد المسارات
           export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
           
-          # البناء (نستخدم make فقط أولاً للتأكد من التجميع)
-          make
-          # إذا نجح make، سيقوم هذا الأمر بإنشاء الحزمة
+          # 6. البناء
+          echo "Building..."
           make package
           
-          # تجميع الناتج
+          # 7. التجميع
           mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          cp *.deb final_output/ || echo "No .deb generated"
 
       - name: Upload
         uses: actions/upload-artifact@v4
