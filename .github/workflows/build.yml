@@ -10,14 +10,27 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # استخدام مسار داخل مجلد المشروع الحالي لضمان عدم التعارض
+          # تحديد المسار في مجلد العمل الحالي
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           
-          echo "Setting up Theos in $THEOS"
+          # 1. التحقق من وجود مجلد Theos
+          if [ -d "$THEOS" ]; then
+            echo "Theos already exists. Skipping clone."
+          else
+            echo "Theos not found. Downloading..."
+            git clone --depth 1 https://github.com/theos/theos "$THEOS"
+            # تحديث الـ submodules فقط إذا لم تكن موجودة
+            cd "$THEOS"
+            git submodule update --init --recursive
+          fi
           
-          # تحميل Theos و SDKs في المجلد الجديد
-          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
-          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          # 2. التحقق من وجود مجلد SDKs
+          if [ -d "$THEOS/sdks" ]; then
+            echo "SDKs already exist. Skipping clone."
+          else
+            echo "SDKs not found. Downloading..."
+            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          fi
           
           # تصدير المتغيرات للخطوات التالية
           echo "THEOS=$THEOS" >> $GITHUB_ENV
@@ -25,7 +38,7 @@ jobs:
 
       - name: Compile
         run: |
-          # تأكد أننا نستخدم المسار الجديد
+          # التأكد من تصدير المسارات مرة أخرى في هذه الخطوة
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           export PATH=$PATH:$THEOS/bin
           
