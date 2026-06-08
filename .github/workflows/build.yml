@@ -10,14 +10,15 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # نستخدم مسار $HOME/theos لأنه مساحة خاصة للمستخدم
+          # نستخدم مسار ثابت في مجلد المنزل
           export THEOS=$HOME/theos
           
-          # التحقق من وجود المجلد: إذا كان موجوداً، لا تفعل شيئاً (تخطي التحميل)
-          if [ -d "$THEOS" ]; then
-            echo "Theos already exists, skipping download."
+          # التحقق من وجود المجلد: إذا كان موجوداً، لا تحمل، استخدمه مباشرة
+          if [ -d "$THEOS" ] && [ -d "$THEOS/sdks" ]; then
+            echo "Theos and SDKs are already present. Skipping download."
           else
-            echo "Theos not found, downloading..."
+            echo "Theos not found or incomplete. Downloading..."
+            rm -rf "$THEOS"
             git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
             git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           fi
@@ -30,10 +31,11 @@ jobs:
           export THEOS=$HOME/theos
           export PATH=$PATH:$THEOS/bin
           
-          # محاولة البناء
+          # تأكد أننا في المجلد الذي يحتوي على Makefile
+          # ثم قم بتشغيل البناء
           make package
           
-          # تجميع الناتج
+          # جمع ملف الـ deb الناتج في مجلد ثابت للرفع
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
