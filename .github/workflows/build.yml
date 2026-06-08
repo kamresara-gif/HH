@@ -8,42 +8,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ldid dpkg
+
       - name: Setup Environment
         run: |
-          # تحديد المسار في مجلد العمل الحالي
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           
-          # 1. التحقق من وجود مجلد Theos
-          if [ -d "$THEOS" ]; then
-            echo "Theos already exists. Skipping clone."
-          else
-            echo "Theos not found. Downloading..."
+          # التحقق من وجود Theos وتخطيه إذا كان موجوداً
+          if [ ! -d "$THEOS" ]; then
             git clone --depth 1 https://github.com/theos/theos "$THEOS"
-            # تحديث الـ submodules فقط إذا لم تكن موجودة
-            cd "$THEOS"
-            git submodule update --init --recursive
+            cd "$THEOS" && git submodule update --init --recursive
           fi
           
-          # 2. التحقق من وجود مجلد SDKs
-          if [ -d "$THEOS/sdks" ]; then
-            echo "SDKs already exist. Skipping clone."
-          else
-            echo "SDKs not found. Downloading..."
+          # التحقق من وجود SDKs
+          if [ ! -d "$THEOS/sdks" ]; then
             git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           fi
           
-          # تصدير المتغيرات للخطوات التالية
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          # التأكد من تصدير المسارات مرة أخرى في هذه الخطوة
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           export PATH=$PATH:$THEOS/bin
           
+          # التأكد من المسار
+          cd $GITHUB_WORKSPACE
+          
+          # البناء
           make package
           
+          # جمع المخرجات
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
