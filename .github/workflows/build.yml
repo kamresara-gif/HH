@@ -1,49 +1,16 @@
-name: Build Tweak
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch: 
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install Dependencies
+- name: Force Clean and Setup Theos
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libxml2-dev libplist-dev
-
-      - name: Force Clean and Setup Theos
-        run: |
-          echo "تنظيف المسارات القديمة..."
+          echo "تنظيف المسارات..."
           sudo rm -rf /tmp/theos
           sudo rm -rf $GITHUB_WORKSPACE/theos
           
-          echo "جاري تحميل Theos..."
+          echo "تحميل Theos..."
           git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
           
           echo "تحميل الـ SDKs المطلوبة..."
           mkdir -p $GITHUB_WORKSPACE/theos/sdks
           curl -L -o $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/latest/iPhoneOS14.5.sdk.tar.xz
+          # فك ضغط الـ SDK
           tar -xvf $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz -C $GITHUB_WORKSPACE/theos/sdks/
-          
-      - name: Set Environment Variables
-        run: |
-          echo "THEOS=$GITHUB_WORKSPACE/theos" >> $GITHUB_ENV
-          echo "$GITHUB_WORKSPACE/theos/bin" >> $GITHUB_PATH
 
-      - name: Build Tweak
-        run: |
-          # البحث التلقائي عن المجلد الذي يحتوي على Makefile والدخول إليه
-          TWEAK_DIR=$(find . -maxdepth 2 -name "Makefile" -exec dirname {} \;)
-          echo "تم العثور على المشروع في: $TWEAK_DIR"
-          cd "$TWEAK_DIR"
-          
-          # تنفيذ البناء
-          make package
+
