@@ -28,6 +28,11 @@ jobs:
           echo "جاري تحميل Theos..."
           git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
           
+          echo "تحميل الـ SDKs المطلوبة..."
+          mkdir -p $GITHUB_WORKSPACE/theos/sdks
+          curl -L -o $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/latest/iPhoneOS14.5.sdk.tar.xz
+          tar -xvf $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz -C $GITHUB_WORKSPACE/theos/sdks/
+          
       - name: Set Environment Variables
         run: |
           echo "THEOS=$GITHUB_WORKSPACE/theos" >> $GITHUB_ENV
