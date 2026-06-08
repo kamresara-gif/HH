@@ -10,14 +10,13 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # نستخدم مسار خاص داخل المجلد الرئيسي لضمان عدم تعارض مسارات النظام
-          export THEOS=$GITHUB_WORKSPACE/theos
+          # نحدد مساراً محلياً للمشروع لا يتعارض مع ملفات النظام
+          export THEOS=$HOME/theos
           
-          # التحقق من وجود المجلد قبل تحميله لتجنب خطأ 128
+          # التحقق من وجود المجلد قبل التحميل (لتجنب خطأ 128)
           if [ ! -d "$THEOS" ]; then
             git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
           fi
-          
           if [ ! -d "$THEOS/sdks" ]; then
             git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           fi
@@ -27,14 +26,13 @@ jobs:
 
       - name: Compile
         run: |
-          export THEOS=$GITHUB_WORKSPACE/theos
+          export THEOS=$HOME/theos
           export PATH=$PATH:$THEOS/bin
           
-          # البناء باستخدام المسار الذي حددناه
-          # هذا السطر يبحث عن Makefile في أي مجلد فرعي ويقوم بالبناء فيه
+          # البناء: يبحث عن ملف Makefile في أي مكان ويقوم بالبناء
           find . -name "Makefile" -execdir make package \;
           
-          # جمع ملفات الـ deb الناتجة (في أي مسار كانت)
+          # تجميع المخرجات في مجلد ثابت للرفع
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
