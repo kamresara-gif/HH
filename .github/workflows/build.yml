@@ -1,5 +1,4 @@
 name: Tweak Cloud Compiler
-
 on: [push, workflow_dispatch]
 
 jobs:
@@ -8,29 +7,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Tweak
+      - name: Prepare Environment
         run: |
-          # تنظيف أي شيء قديم
-          rm -rf /tmp/theos /tmp/build
+          # تنظيف أي مجلدات قديمة تسبب الخطأ 128
+          rm -rf theos sdks
+          # تحميل Theos مباشرة إلى مجلد المشروع
+          git clone --depth 1 https://github.com/theos/theos.git theos
+          git clone --depth 1 https://github.com/theos/sdks.git theos/sdks
           
-          # تحميل Theos كأرشيف مباشر (تخطي git clone تماماً)
-          mkdir -p /tmp/theos
-          curl -L https://github.com/theos/theos/archive/master.tar.gz | tar -xz -C /tmp/theos --strip-components=1
-          
-          # تحميل SDKs كأرشيف مباشر
-          mkdir -p /tmp/theos/sdks
-          curl -L https://github.com/theos/sdks/archive/master.tar.gz | tar -xz -C /tmp/theos/sdks --strip-components=1
-          
-          # ضبط البيئة
-          export THEOS=/tmp/theos
+          # تثبيت الأدوات الضرورية
+          sudo apt-get update && sudo apt-get install -y dpkg
+
+      - name: Compile
+        run: |
+          # تصدير المسارات لتشير إلى المجلدات داخل المشروع الحالي
+          export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
           
-          # البناء
+          # البناء (نستخدم make فقط أولاً للتأكد من التجميع)
+          make
+          # إذا نجح make، سيقوم هذا الأمر بإنشاء الحزمة
           make package
           
-          # نقل المخرجات
+          # تجميع الناتج
           mkdir -p final_output
-          cp *.deb final_output/ || echo "No .deb file found"
+          find . -name "*.deb" -exec cp {} final_output/ \;
 
       - name: Upload
         uses: actions/upload-artifact@v4
