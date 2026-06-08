@@ -5,38 +5,19 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/theos/theos:latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Tweak
+      - name: Build
         run: |
-          # 1. تنظيف شامل وجذري لأي بقايا سابقة
-          rm -rf /tmp/theos /tmp/sdks theos sdks
-          
-          # 2. تحميل Theos و SDKs بشكل مباشر في مسار مؤقت آمن
-          git clone --depth 1 https://github.com/theos/theos.git /tmp/theos
-          git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
-          
-          # 3. تثبيت الأدوات الضرورية (تم حل مشكلة ldid بتحميله يدوياً)
-          sudo apt-get update && sudo apt-get install -y dpkg make
-          sudo curl -sLo /usr/bin/ldid https://github.com/theos/ldid/releases/latest/download/ldid
-          sudo chmod +x /usr/bin/ldid
-          
-          # 4. إعداد متغيرات البيئة
-          export THEOS=/tmp/theos
-          export THEOS_SDK_DIR=/tmp/sdks
-          export PATH=$PATH:$THEOS/bin
-          
-          # 5. البناء (نتأكد من العودة لمجلد المشروع)
-          # افترضنا أن ملف Makefile في المجلد الرئيسي
+          # بما أننا نستخدم حاوية Theos جاهزة، كل الأدوات موجودة مسبقاً
+          # هذا الأمر يقوم بالبناء مباشرة
           make package
           
-          # 6. تجميع الناتج
-          mkdir -p final_output
-          cp *.deb final_output/ || echo "No .deb generated"
-
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
-          path: final_output/
+          path: packages/*.deb
