@@ -8,37 +8,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Tweak
+      - name: Prepare Environment
         run: |
-          # 1. تنظيف شامل لمجلد العمل
+          # 1. التنظيف الجبري: حذف أي مجلدات قديمة تسبب تعارضات
           rm -rf theos sdks
           
-          # 2. تحميل Theos مباشرة كأرشيف (لا يحتاج git)
-          echo "Downloading Theos..."
-          curl -LO https://github.com/theos/theos/archive/master.tar.gz
-          mkdir -p theos
-          tar -xzf master.tar.gz -C theos --strip-components=1
+          # 2. تحميل Theos و SDKs بشكل مباشر (بدون --recursive لتجنب تعارض الـ submodules)
+          git clone --depth 1 https://github.com/theos/theos.git theos
+          git clone --depth 1 https://github.com/theos/sdks.git theos/sdks
           
-          # 3. تحميل SDKs مباشرة كأرشيف
-          echo "Downloading SDKs..."
-          curl -LO https://github.com/theos/sdks/archive/master.tar.gz
-          mkdir -p theos/sdks
-          tar -xzf master.tar.gz -C theos/sdks --strip-components=1
-          
-          # 4. تثبيت الأدوات الضرورية
-          sudo apt-get update && sudo apt-get install -y make dpkg
-          
-          # 5. إعداد المسارات
+          # 3. تثبيت الأدوات الأساسية (ldid و dpkg)
+          sudo apt-get update && sudo apt-get install -y dpkg ldid
+
+      - name: Compile
+        run: |
+          # ضبط متغيرات البيئة بدقة
           export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
           
-          # 6. البناء
-          echo "Building..."
+          # التأكد من التواجد في المجلد الصحيح وبناء الحزمة
+          # إذا كان الـ Makefile في المجلد الرئيسي، فلا حاجة للـ cd
           make package
           
-          # 7. التجميع
+          # تجميع المخرجات في مجلد ثابت
           mkdir -p final_output
-          cp *.deb final_output/ || echo "No .deb generated"
+          cp *.deb final_output/ || echo "No .deb file found"
 
       - name: Upload
         uses: actions/upload-artifact@v4
