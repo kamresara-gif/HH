@@ -1,16 +1,42 @@
-- name: Force Clean and Setup Theos
+name: Tweak Cloud Compiler
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Tweak
         run: |
-          echo "تنظيف المسارات..."
-          sudo rm -rf /tmp/theos
-          sudo rm -rf $GITHUB_WORKSPACE/theos
+          # 1. تنظيف شامل وجذري لأي بقايا سابقة
+          rm -rf /tmp/theos /tmp/sdks theos sdks
           
-          echo "تحميل Theos..."
-          git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
+          # 2. تحميل Theos و SDKs بشكل مباشر في مسار مؤقت آمن
+          git clone --depth 1 https://github.com/theos/theos.git /tmp/theos
+          git clone --depth 1 https://github.com/theos/sdks.git /tmp/sdks
           
-          echo "تحميل الـ SDKs المطلوبة..."
-          mkdir -p $GITHUB_WORKSPACE/theos/sdks
-          curl -L -o $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz https://github.com/theos/sdks/releases/download/latest/iPhoneOS14.5.sdk.tar.xz
-          # فك ضغط الـ SDK
-          tar -xvf $GITHUB_WORKSPACE/theos/sdks/iPhoneOS14.5.sdk.tar.xz -C $GITHUB_WORKSPACE/theos/sdks/
+          # 3. تثبيت الأدوات الضرورية (تم حل مشكلة ldid بتحميله يدوياً)
+          sudo apt-get update && sudo apt-get install -y dpkg make
+          sudo curl -sLo /usr/bin/ldid https://github.com/theos/ldid/releases/latest/download/ldid
+          sudo chmod +x /usr/bin/ldid
+          
+          # 4. إعداد متغيرات البيئة
+          export THEOS=/tmp/theos
+          export THEOS_SDK_DIR=/tmp/sdks
+          export PATH=$PATH:$THEOS/bin
+          
+          # 5. البناء (نتأكد من العودة لمجلد المشروع)
+          # افترضنا أن ملف Makefile في المجلد الرئيسي
+          make package
+          
+          # 6. تجميع الناتج
+          mkdir -p final_output
+          cp *.deb final_output/ || echo "No .deb generated"
 
-
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: tweak-package
+          path: final_output/
