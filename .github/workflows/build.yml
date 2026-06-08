@@ -10,20 +10,17 @@ jobs:
 
       - name: Clean and Setup
         run: |
-          # مسح أي مسار قديم تماماً
-          rm -rf theos_dir
+          # ننشئ مجلداً باسم فريد في كل مرة بناءً على الوقت الحالي
+          TIMESTAMP=$(date +%s)
+          export THEOS=$GITHUB_WORKSPACE/theos_$TIMESTAMP
           
-          # إنشاء المجلد من جديد
-          mkdir theos_dir
-          export THEOS=$GITHUB_WORKSPACE/theos_dir
+          echo "Setting up Theos in $THEOS"
           
-          # تحميل Theos بدون التعقيدات التي تسبب الخطأ 128
+          # تحميل Theos و SDKs في مجلد جديد تماماً وغير مكرر
           git clone --depth 1 https://github.com/theos/theos "$THEOS"
-          
-          # تحميل الـ SDKs داخل مجلد نظيف
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           
-          # تحديث الـ submodules فقط للمجلد الرئيسي
+          # تحديث الـ submodules
           cd "$THEOS" && git submodule update --init --recursive
           
           echo "THEOS=$THEOS" >> $GITHUB_ENV
@@ -31,7 +28,7 @@ jobs:
 
       - name: Compile Tweak
         run: |
-          export THEOS=$GITHUB_WORKSPACE/theos_dir
+          # استخدام نفس المتغير الذي تم تصديره للبيئة
           export PATH=$PATH:$THEOS/bin
           
           # البناء
