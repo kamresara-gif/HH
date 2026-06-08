@@ -10,14 +10,12 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # تحديد مسار العمل
-          export THEOS=$HOME/theos
+          # استخدام مسار داخل مجلد المشروع الحالي لضمان عدم التعارض
+          export THEOS=$GITHUB_WORKSPACE/theos_dir
           
-          # تنظيف أي بقايا من عمليات سابقة لضمان بيئة نظيفة
-          echo "Cleaning up and preparing Theos environment..."
-          rm -rf "$THEOS"
+          echo "Setting up Theos in $THEOS"
           
-          # تحميل Theos و SDKs
+          # تحميل Theos و SDKs في المجلد الجديد
           git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           
@@ -27,11 +25,12 @@ jobs:
 
       - name: Compile
         run: |
-          # تأكد أننا في المجلد الذي يحتوي على Makefile
-          # ثم قم بتشغيل البناء
+          # تأكد أننا نستخدم المسار الجديد
+          export THEOS=$GITHUB_WORKSPACE/theos_dir
+          export PATH=$PATH:$THEOS/bin
+          
           make package
           
-          # جمع ملف الـ deb الناتج في مجلد ثابت للرفع
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
