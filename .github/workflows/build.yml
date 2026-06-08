@@ -8,18 +8,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Essential Tools
+      - name: Clean and Setup
         run: |
-          sudo apt-get update
-          sudo apt-get install -y make git dpkg
-
-      - name: Setup Theos
-        run: |
+          # مسح أي مسار قديم تماماً
+          rm -rf theos_dir
+          
+          # إنشاء المجلد من جديد
+          mkdir theos_dir
           export THEOS=$GITHUB_WORKSPACE/theos_dir
-          # تنظيف أي بقايا لضمان عدم حدوث خطأ 128
-          rm -rf "$THEOS"
-          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          
+          # تحميل Theos بدون التعقيدات التي تسبب الخطأ 128
+          git clone --depth 1 https://github.com/theos/theos "$THEOS"
+          
+          # تحميل الـ SDKs داخل مجلد نظيف
           git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          
+          # تحديث الـ submodules فقط للمجلد الرئيسي
+          cd "$THEOS" && git submodule update --init --recursive
+          
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
@@ -27,15 +33,14 @@ jobs:
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           export PATH=$PATH:$THEOS/bin
-          # محاولة البناء الأساسية
-          make
-          # محاولة التغليف، إذا فشلت سنستخدم dpkg-deb مباشرة
-          make package || dpkg-deb -b . ./SilentPwn.deb
+          
+          # البناء
+          make package
           
           mkdir -p final_output
-          cp *.deb final_output/ || echo "No deb file found"
+          find . -name "*.deb" -exec cp {} final_output/ \;
 
-      - name: Upload Result
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: tweak-package
