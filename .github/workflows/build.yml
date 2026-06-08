@@ -10,32 +10,20 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # نستخدم مسار ثابت في مجلد المنزل
-          export THEOS=$HOME/theos
-          
-          # التحقق من وجود المجلد: إذا كان موجوداً، لا تحمل، استخدمه مباشرة
-          if [ -d "$THEOS" ] && [ -d "$THEOS/sdks" ]; then
-            echo "Theos and SDKs are already present. Skipping download."
-          else
-            echo "Theos not found or incomplete. Downloading..."
-            rm -rf "$THEOS"
-            git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
-            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
-          fi
-          
-          echo "THEOS=$THEOS" >> $GITHUB_ENV
-          echo "$THEOS/bin" >> $GITHUB_PATH
+          export THEOS=/opt/theos
+          sudo mkdir -p /opt/theos
+          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          echo "THEOS=/opt/theos" >> $GITHUB_ENV
+          echo "/opt/theos/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          export THEOS=$HOME/theos
-          export PATH=$PATH:$THEOS/bin
-          
-          # تأكد أننا في المجلد الذي يحتوي على Makefile
-          # ثم قم بتشغيل البناء
-          make package
-          
-          # جمع ملف الـ deb الناتج في مجلد ثابت للرفع
+          export THEOS=/opt/theos
+          export PATH=$PATH:/opt/theos/bin
+          # البحث عن ملف Makefile والبناء في مكانه
+          find . -name "Makefile" -execdir make package \;
+          # جمع المخرجات في مجلد ثابت
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
