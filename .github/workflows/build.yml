@@ -1,45 +1,39 @@
-name: Tweak Cloud Compiler
+name: Build Tweak
 
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # هذا يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libxml2-dev libplist-dev
+
+      - name: Force Clean and Setup Theos
+        run: |
+          echo "تنظيف المسارات القديمة..."
+          sudo rm -rf /tmp/theos
+          sudo rm -rf $GITHUB_WORKSPACE/theos
+          
+          echo "جاري تحميل Theos..."
+          git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
+          
+      - name: Set Environment Variables
+        run: |
+          echo "THEOS=$GITHUB_WORKSPACE/theos" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/theos/bin" >> $GITHUB_PATH
 
       - name: Build Tweak
         run: |
-          # نستخدم مساراً عشوائياً تماماً لا يمكن أن يكون موجوداً مسبقاً
-          BUILD_DIR=$(mktemp -d)
-          echo "Building in $BUILD_DIR"
-          
-          # تثبيت الأدوات
-          sudo apt-get update && sudo apt-get install -y dpkg make
-          sudo curl -sLo /usr/bin/ldid https://github.com/theos/ldid/releases/latest/download/ldid
-          sudo chmod +x /usr/bin/ldid
-          
-          # تحميل الـ Theos داخل المسار العشوائي
-          git clone --depth 1 https://github.com/theos/theos.git "$BUILD_DIR/theos"
-          git clone --depth 1 https://github.com/theos/sdks.git "$BUILD_DIR/theos/sdks"
-          
-          # نسخ ملفات مشروعك الخاصة إلى داخل المسار الذي سنبني فيه
-          cp -r . "$BUILD_DIR/project"
-          cd "$BUILD_DIR/project"
-          
-          # ضبط الـ Theos للبناء
-          export THEOS="$BUILD_DIR/theos"
-          export PATH="$PATH:$THEOS/bin"
-          
-          # البناء
+          cd $GITHUB_WORKSPACE
           make package
-          
-          # نقل الناتج إلى المجلد الأصلي ليتم رفعه
-          mkdir -p $GITHUB_WORKSPACE/final_output
-          cp *.deb $GITHUB_WORKSPACE/final_output/
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: tweak-package
-          path: final_output/
