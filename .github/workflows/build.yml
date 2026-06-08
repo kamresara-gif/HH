@@ -10,27 +10,30 @@ jobs:
 
       - name: Setup Environment
         run: |
-          # مسح أي بقايا سابقة لضمان بيئة نظيفة تماماً
-          rm -rf $HOME/theos
-          
-          # نستخدم مسار $HOME/theos الذي يملكه المستخدم
+          # نستخدم مسار $HOME/theos لأنه مساحة خاصة للمستخدم
           export THEOS=$HOME/theos
-          git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
-          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          
+          # التحقق من وجود المجلد: إذا كان موجوداً، لا تفعل شيئاً (تخطي التحميل)
+          if [ -d "$THEOS" ]; then
+            echo "Theos already exists, skipping download."
+          else
+            echo "Theos not found, downloading..."
+            git clone --recursive --depth 1 https://github.com/theos/theos "$THEOS"
+            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          fi
           
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
       - name: Compile
         run: |
-          # التأكد من استخدام المسار الموحد
           export THEOS=$HOME/theos
           export PATH=$PATH:$THEOS/bin
           
-          # البناء
+          # محاولة البناء
           make package
           
-          # نقل الناتج إلى مجلد ثابت
+          # تجميع الناتج
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
