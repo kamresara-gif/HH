@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch: # هذا يسمح لك بتشغيل البناء يدوياً من واجهة GitHub
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -35,5 +35,10 @@ jobs:
 
       - name: Build Tweak
         run: |
-          cd $GITHUB_WORKSPACE
+          # البحث التلقائي عن المجلد الذي يحتوي على Makefile والدخول إليه
+          TWEAK_DIR=$(find . -maxdepth 2 -name "Makefile" -exec dirname {} \;)
+          echo "تم العثور على المشروع في: $TWEAK_DIR"
+          cd "$TWEAK_DIR"
+          
+          # تنفيذ البناء
           make package
