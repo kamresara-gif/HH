@@ -8,34 +8,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clean and Setup
+      - name: Build Tweak
         run: |
-          # ننشئ مجلداً باسم فريد في كل مرة بناءً على الوقت الحالي
-          TIMESTAMP=$(date +%s)
-          export THEOS=$GITHUB_WORKSPACE/theos_$TIMESTAMP
+          # تنظيف بيئة العمل بالكامل من أي بقايا
+          find . -maxdepth 1 -not -name '.' -not -name '.git' -exec rm -rf {} +
           
-          echo "Setting up Theos in $THEOS"
+          # تثبيت الأدوات الضرورية
+          sudo apt-get update && sudo apt-get install -y make git dpkg
           
-          # تحميل Theos و SDKs في مجلد جديد تماماً وغير مكرر
-          git clone --depth 1 https://github.com/theos/theos "$THEOS"
-          git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
+          # تحميل Theos في مجلد ثابت وبسيط
+          export THEOS=$HOME/theos
+          rm -rf $THEOS
+          git clone --recursive --depth 1 https://github.com/theos/theos $THEOS
+          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks
           
-          # تحديث الـ submodules
-          cd "$THEOS" && git submodule update --init --recursive
-          
-          echo "THEOS=$THEOS" >> $GITHUB_ENV
-          echo "$THEOS/bin" >> $GITHUB_PATH
-
-      - name: Compile Tweak
-        run: |
-          # استخدام نفس المتغير الذي تم تصديره للبيئة
+          # إعداد المسارات
           export PATH=$PATH:$THEOS/bin
+          
+          # العودة لمجلد العمل الأساسي (الذي يحتوي على الكود الخاص بك)
+          # ملاحظة: إذا كان كودك في مجلد فرعي، تأكد من الدخول إليه هنا
+          # cd اسم_المجلد_الخاص_بك
           
           # البناء
           make package
           
+          # نقل الناتج
           mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          cp *.deb final_output/
 
       - name: Upload
         uses: actions/upload-artifact@v4
