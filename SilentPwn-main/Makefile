@@ -10,3 +10,4 @@ SilentPwn_FRAMEWORKS = UIKit Foundation QuartzCore
 SilentPwn_CFLAGS = -fobjc-arc
 
 include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS_MAKE_PATH)/aggregate.mk
