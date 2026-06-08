@@ -8,37 +8,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Tweak
+      - name: Clean and Prepare
         run: |
-          # 1. إعداد مسار ثابت خارج مجلد العمل الخاص بـ GitHub
-          export THEOS=/tmp/theos
+          # مسح أي ملفات قديمة تسبب خطأ 128
+          rm -rf theos sdks
           
-          # 2. تحميل Theos فقط إذا لم يكن موجوداً، واستخدم --depth 1 لتقليل التعقيد
-          if [ ! -d "$THEOS" ]; then
-            git clone --depth 1 https://github.com/theos/theos.git "$THEOS"
-          fi
+          # تحميل Theos و SDKs بشكل مباشر
+          git clone --depth 1 https://github.com/theos/theos.git theos
+          git clone --depth 1 https://github.com/theos/sdks.git theos/sdks
           
-          # 3. إعداد SDKs في مكان منفصل
-          export THEOS_SDK_DIR=/tmp/sdks
-          if [ ! -d "$THEOS_SDK_DIR" ]; then
-            git clone --depth 1 https://github.com/theos/sdks.git "$THEOS_SDK_DIR"
-          fi
-          
-          # 4. ربط الـ SDKs بالـ Theos (بدلاً من الاستنساخ داخل المجلد)
-          ln -s "$THEOS_SDK_DIR" "$THEOS/sdks"
-          
-          # 5. تثبيت الحزم المطلوبة (مع إضافة حل تحميل ldid يدوياً)
+          # تثبيت الأدوات الضرورية (تم حل مشكلة ldid هنا)
           sudo apt-get update && sudo apt-get install -y dpkg make
           sudo curl -sLo /usr/bin/ldid https://github.com/theos/ldid/releases/latest/download/ldid
           sudo chmod +x /usr/bin/ldid
-          
-          # 6. البناء
+
+      - name: Build Tweak
+        run: |
+          export THEOS=$GITHUB_WORKSPACE/theos
           export PATH=$PATH:$THEOS/bin
+          
+          # البناء
           make package
           
-          # 7. التجميع
+          # تجميع المخرجات
           mkdir -p final_output
-          find . -name "*.deb" -exec cp {} final_output/ \;
+          cp *.deb final_output/ || echo "No .deb generated"
 
       - name: Upload
         uses: actions/upload-artifact@v4
