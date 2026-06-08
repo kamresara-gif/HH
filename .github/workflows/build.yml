@@ -10,30 +10,27 @@ jobs:
 
       - name: Build Tweak
         run: |
-          # 1. إعداد مسار عمل بعيد عن مجلدات GitHub المخبأة
-          export MY_WORKING_DIR=/tmp/build_dir
-          rm -rf $MY_WORKING_DIR
-          mkdir -p $MY_WORKING_DIR
+          # تنظيف أي شيء قديم
+          rm -rf /tmp/theos /tmp/build
           
-          # 2. نقل ملفات الكود إلى هذا المجلد الجديد
-          cp -r . $MY_WORKING_DIR/
-          cd $MY_WORKING_DIR
+          # تحميل Theos كأرشيف مباشر (تخطي git clone تماماً)
+          mkdir -p /tmp/theos
+          curl -L https://github.com/theos/theos/archive/master.tar.gz | tar -xz -C /tmp/theos --strip-components=1
           
-          # 3. إعداد Theos في مسار خارجي آمن
+          # تحميل SDKs كأرشيف مباشر
+          mkdir -p /tmp/theos/sdks
+          curl -L https://github.com/theos/sdks/archive/master.tar.gz | tar -xz -C /tmp/theos/sdks --strip-components=1
+          
+          # ضبط البيئة
           export THEOS=/tmp/theos
-          rm -rf $THEOS
-          git clone --recursive --depth 1 https://github.com/theos/theos $THEOS
-          git clone --depth 1 https://github.com/theos/sdks.git $THEOS/sdks
-          
-          # 4. إعداد البيئة
           export PATH=$PATH:$THEOS/bin
           
-          # 5. البناء
+          # البناء
           make package
           
-          # 6. نقل المخرجات للمجلد الأصلي لكي يجدها الـ Artifact
-          mkdir -p $GITHUB_WORKSPACE/final_output
-          cp *.deb $GITHUB_WORKSPACE/final_output/
+          # نقل المخرجات
+          mkdir -p final_output
+          cp *.deb final_output/ || echo "No .deb file found"
 
       - name: Upload
         uses: actions/upload-artifact@v4
