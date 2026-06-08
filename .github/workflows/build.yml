@@ -11,23 +11,18 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ldid dpkg
+          sudo apt-get install -y dpkg git make
 
       - name: Setup Environment
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos_dir
-          
-          # التحقق من وجود Theos وتخطيه إذا كان موجوداً
           if [ ! -d "$THEOS" ]; then
             git clone --depth 1 https://github.com/theos/theos "$THEOS"
             cd "$THEOS" && git submodule update --init --recursive
           fi
-          
-          # التحقق من وجود SDKs
           if [ ! -d "$THEOS/sdks" ]; then
             git clone --depth 1 https://github.com/theos/sdks.git "$THEOS/sdks"
           fi
-          
           echo "THEOS=$THEOS" >> $GITHUB_ENV
           echo "$THEOS/bin" >> $GITHUB_PATH
 
@@ -35,14 +30,8 @@ jobs:
         run: |
           export THEOS=$GITHUB_WORKSPACE/theos_dir
           export PATH=$PATH:$THEOS/bin
-          
-          # التأكد من المسار
-          cd $GITHUB_WORKSPACE
-          
-          # البناء
+          # تأكد أنك أضفت include $(THEOS_MAKE_PATH)/aggregate.mk في ملف Makefile
           make package
-          
-          # جمع المخرجات
           mkdir -p final_output
           find . -name "*.deb" -exec cp {} final_output/ \;
 
@@ -51,4 +40,3 @@ jobs:
         with:
           name: tweak-package
           path: final_output/
-          if-no-files-found: error
